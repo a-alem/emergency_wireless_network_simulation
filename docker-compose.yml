@@ -1,0 +1,156 @@
+services:
+  mesh1:
+    build:
+      context: .
+      dockerfile: docker/mesh/Dockerfile
+    container_name: mesh1
+    hostname: mesh1
+    privileged: true
+    networks:
+      link_12:
+        ipv4_address: 10.0.0.2
+    volumes:
+      - ./config/babeld:/etc/babeld:rw
+
+
+  mesh2_ap:
+    build:
+      context: .
+      dockerfile: docker/mesh/Dockerfile
+    container_name: mesh2_ap
+    hostname: mesh2_ap
+    privileged: true
+    networks:
+      link_12:
+        ipv4_address: 10.0.0.3
+      link_23:
+        ipv4_address: 10.0.0.10
+      ap_net:
+        ipv4_address: 192.168.117.2
+    volumes:
+      - ./config/babeld:/etc/babeld:rw
+
+  mesh3:
+    build:
+      context: .
+      dockerfile: docker/mesh/Dockerfile
+    container_name: mesh3
+    hostname: mesh3
+    privileged: true 
+    networks:
+      link_23:
+        ipv4_address: 10.0.0.11
+      link_34:
+        ipv4_address: 10.0.0.18
+    volumes:
+      - ./config/babeld:/etc/babeld:rw
+
+  mesh4:
+    build:
+      context: .
+      dockerfile: docker/mesh/Dockerfile
+    container_name: mesh4
+    hostname: mesh4
+    privileged: true 
+    networks:
+      link_34:
+        ipv4_address: 10.0.0.19
+      link_4u:
+        ipv4_address: 10.0.0.26
+    volumes:
+      - ./config/babeld:/etc/babeld:rw
+
+  uplink:
+    build:
+      context: .
+      dockerfile: docker/mesh/Dockerfile
+    container_name: uplink
+    hostname: uplink
+    privileged: true 
+    networks:
+      link_4u:
+        ipv4_address: 10.0.0.27
+      uplink_net:
+        ipv4_address: 117.117.117.2
+    volumes:
+      - ./config/babeld:/etc/babeld:rw
+
+  wan:
+    image: alpine:3
+    container_name: wan
+    hostname: wan
+    privileged: true 
+    command: ["sh", "-c", "apk add --no-cache iputils && sleep infinity"]
+    networks:
+      uplink_net:
+        ipv4_address: 117.117.117.3
+
+  mobile1:
+    build:
+      context: .
+      dockerfile: docker/client/Dockerfile
+    container_name: mobile1
+    hostname: mobile1
+    privileged: true 
+    networks:
+      ap_net:
+        ipv4_address: 192.168.117.10
+  
+  mobile2:
+    build:
+      context: .
+      dockerfile: docker/client/Dockerfile
+    container_name: mobile2
+    hostname: mobile2
+    privileged: true 
+    networks:
+      ap_net:
+        ipv4_address: 192.168.117.11
+  
+  mobile3:
+    build:
+      context: .
+      dockerfile: docker/client/Dockerfile
+    container_name: mobile3
+    hostname: mobile4
+    privileged: true
+    networks:
+      ap_net:
+        ipv4_address: 192.168.117.12
+
+networks:
+  # Links forms the mesh backbone
+  link_12:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 10.0.0.0/29 # Point-Point Link
+  link_23:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 10.0.0.8/29 # Point-Point Link
+  link_34:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 10.0.0.16/29 # Point-Point Link
+  link_4u: # mesh4 to uplink
+    driver: bridge 
+    ipam:
+      config:
+        - subnet: 10.0.0.24/29 # Point-Point Link
+
+  # For simulated wireless network.
+  ap_net:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 192.168.117.0/24
+
+  # For WAN uplink
+  uplink_net:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 117.117.117.0/29 # Gateway-WAN Point-Point Link
